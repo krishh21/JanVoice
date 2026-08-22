@@ -10,8 +10,6 @@ import {
   FaBuilding,
   FaUser,
   FaPaperPlane,
-  FaThumbsUp,
-  FaThumbsDown,
   FaImage,
   FaArrowLeft
 } from 'react-icons/fa';
@@ -227,17 +225,6 @@ const ComplaintDetails = () => {
     } catch (error) {
       console.error('Error adding comment:', error);
       toast.error(t('error.commentFailed'));
-    }
-  };
-
-  const handleVote = async (voteType) => {
-    try {
-      await api.post(`/complaints/${id}/vote`, { voteType });
-      fetchComplaintDetails();
-      toast.success(voteType === 'upvote' ? t('success.upvote') : t('success.downvote'));
-    } catch (error) {
-      console.error('Error voting:', error);
-      toast.error(error.response?.data?.message || t('error.voteFailed'));
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaLock, FaArrowLeft } from 'react-icons/fa';
 import { useLanguage } from '../context/LanguageContext';
@@ -47,7 +47,7 @@ const ResetPassword = () => {
   const { resettoken } = useParams();
   const navigate = useNavigate();
   const { language } = useLanguage();
-  const t = (key) => translations[language][key] || key;
+  const t = useCallback((key) => translations[language][key] || key, [language]);
 
   useEffect(() => {
     if (!resettoken) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaThumbsUp, FaComment, FaMapMarkerAlt, FaClock, FaUser, FaFilter } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
@@ -83,11 +83,7 @@ const CommunityComplaints = () => {
   const { language } = useLanguage();
   const t = (key) => translations[language][key] || key;
 
-  useEffect(() => {
-    fetchComplaints();
-  }, [filters]);
-
-  const fetchComplaints = async () => {
+  const fetchComplaints = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -105,7 +101,11 @@ const CommunityComplaints = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
+
+  useEffect(() => {
+    fetchComplaints();
+  }, [fetchComplaints]);
 
   const handleLike = async (complaintId) => {
     try {
