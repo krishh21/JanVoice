@@ -6,13 +6,19 @@ const AuthContext = createContext({});
 
 export const useAuth = () => useContext(AuthContext);
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || (
+  process.env.NODE_ENV === 'production'
+    ? 'https://janvoice-e0vv.onrender.com/api'
+    : 'http://localhost:5000/api'
+);
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
   // Axios configuration
-  axios.defaults.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  axios.defaults.baseURL = API_BASE_URL;
 
   if (token) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
