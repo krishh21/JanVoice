@@ -29,6 +29,11 @@ const translations = {
     active: 'Active',
     inactive: 'Inactive',
     userId: 'User ID',
+    role: {
+      citizen: 'Citizen',
+      admin: 'Admin',
+      department: 'Department'
+    },
     error: {
       nameRequired: 'Name is required',
       emailRequired: 'Email is required',
@@ -65,6 +70,11 @@ const translations = {
     active: 'सक्रिय',
     inactive: 'निष्क्रिय',
     userId: 'उपयोगकर्ता आईडी',
+    role: {
+      citizen: 'नागरिक',
+      admin: 'प्रशासन',
+      department: 'विभाग'
+    },
     error: {
       nameRequired: 'नाम आवश्यक है',
       emailRequired: 'ईमेल आवश्यक है',
@@ -76,6 +86,16 @@ const translations = {
       passwordMismatch: 'पासवर्ड मेल नहीं खाते'
     }
   }
+};
+
+const isRealisticEmail = (email) => {
+  const normalizedEmail = email.trim().toLowerCase();
+  const emailPattern = /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z]{2,})+$/;
+  if (!emailPattern.test(normalizedEmail)) return false;
+
+  const [localPart, domain] = normalizedEmail.split('@');
+  const provider = domain.split('.')[0];
+  return localPart.length >= 3 && provider.length >= 2;
 };
 
 const Profile = () => {
@@ -117,7 +137,7 @@ const Profile = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = t('error.nameRequired');
     if (!formData.email) newErrors.email = t('error.emailRequired');
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = t('error.emailInvalid');
+    else if (!isRealisticEmail(formData.email)) newErrors.email = t('error.emailInvalid');
     if (!formData.phone) newErrors.phone = t('error.phoneRequired');
     else if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = t('error.phoneInvalid');
     if (!formData.address.trim()) newErrors.address = t('error.addressRequired');
@@ -152,23 +172,23 @@ const Profile = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="card">
+      <div className="panel p-5 sm:p-6">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold">{t('title')}</h1>
-            <p className="text-gray-600">{t('subtitle')}</p>
+            <h1 className="text-3xl font-bold text-slate-950">{t('title')}</h1>
+            <p className="mt-1 text-slate-600">{t('subtitle')}</p>
           </div>
           <button onClick={() => setIsEditing(!isEditing)} className="btn-secondary flex items-center space-x-2">
             {isEditing ? <span>{t('cancelEdit')}</span> : <><FaEdit /><span>{t('edit')}</span></>}
           </button>
         </div>
 
-        {success && <div className="mb-6 p-4 bg-green-50 text-green-800 rounded-lg">{success}</div>}
+        {success && <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">{success}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal Information */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-700">{t('personalInfo')}</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{t('personalInfo')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t('fullName')}</label>
@@ -246,18 +266,18 @@ const Profile = () => {
         </form>
 
         {/* Account Stats */}
-        <div className="mt-8 pt-8 border-t">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">{t('stats')}</h2>
+        <div className="mt-8 pt-8 border-t border-slate-100">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">{t('stats')}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-4 bg-blue-50 rounded-lg">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <p className="text-sm text-blue-700">{t('memberSince')}</p>
-              <p className="font-semibold">{new Date(user?.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p className="font-semibold">{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</p>
             </div>
-            <div className="p-4 bg-green-50 rounded-lg">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <p className="text-sm text-green-700">{t('status')}</p>
               <p className="font-semibold">{user?.isActive ? t('active') : t('inactive')}</p>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
               <p className="text-sm text-purple-700">{t('userId')}</p>
               <p className="font-semibold truncate" title={user?._id}>{user?._id?.substring(0, 12)}...</p>
             </div>

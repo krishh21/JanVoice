@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaUpload, FaMapMarkerAlt, FaCamera, FaInfoCircle } from 'react-icons/fa';
 import api from '../utils/axios';
@@ -104,6 +104,19 @@ const translations = {
   }
 };
 
+const categoryValues = {
+  road: 'Road & Infrastructure',
+  water: 'Water Supply',
+  electricity: 'Electricity',
+  sanitation: 'Sanitation & Waste',
+  safety: 'Public Safety',
+  healthcare: 'Healthcare',
+  education: 'Education',
+  park: 'Parks & Recreation',
+  traffic: 'Traffic & Transportation',
+  other: 'Others'
+};
+
 const NewComplaint = () => {
   const navigate = useNavigate();
   const { language } = useLanguage();
@@ -127,11 +140,13 @@ const NewComplaint = () => {
     location: { address: '', coordinates: { lat: null, lng: null } }
   });
   const [images, setImages] = useState([]);
+  const imagesRef = useRef([]);
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
 
   const categories = Object.keys(translations[language].categories).map(key => ({
     key,
+    value: categoryValues[key],
     label: t(`categories.${key}`)
   }));
 
@@ -150,13 +165,36 @@ const NewComplaint = () => {
     const files = Array.from(e.target.files);
     if (files.length + images.length > 5) {
       toast.error(t('maxImages'));
+      e.target.value = '';
       return;
     }
-    const newImages = files.map(file => ({ file, preview: URL.createObjectURL(file) }));
-    setImages(prev => [...prev, ...newImages]);
+    const validFiles = files.filter(file => file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024);
+    if (validFiles.length !== files.length) {
+      toast.error(t('imagesHint'));
+    }
+    const newImages = validFiles.map(file => ({ file, preview: URL.createObjectURL(file) }));
+    setImages(prev => {
+      const nextImages = [...prev, ...newImages];
+      imagesRef.current = nextImages;
+      return nextImages;
+    });
+    e.target.value = '';
   };
 
-  const removeImage = (index) => setImages(prev => prev.filter((_, i) => i !== index));
+  const removeImage = (index) => {
+    setImages(prev => {
+      URL.revokeObjectURL(prev[index].preview);
+      const nextImages = prev.filter((_, i) => i !== index);
+      imagesRef.current = nextImages;
+      return nextImages;
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      imagesRef.current.forEach(image => URL.revokeObjectURL(image.preview));
+    };
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -179,7 +217,7 @@ const NewComplaint = () => {
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title);
       formDataToSend.append('description', formData.description);
-      formDataToSend.append('category', formData.category);
+      formDataToSend.append('category', categoryValues[formData.category] || formData.category);
       formDataToSend.append('location[address]', formData.location.address);
       if (formData.location.coordinates.lat && formData.location.coordinates.lng) {
         formDataToSend.append('location[coordinates][lat]', formData.location.coordinates.lat);
@@ -200,86 +238,91 @@ const NewComplaint = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="card">
-        <h1 className="text-2xl font-bold mb-2">{t('title')}</h1>
-        <p className="text-gray-600 mb-6">{t('subtitle')}</p>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">{t('issueTitle')}</label>
-            <input id="title" name="title" type="text" value={formData.title} onChange={handleChange} className={`input-field ${errors.title ? 'border-red-300' : ''}`} placeholder={t('titlePlaceholder')} maxLength={200} />
-            {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
-            <p className="mt-1 text-sm text-gray-500">{t('titleHint')}</p>
-          </div>
-          {/* Description */}
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">{t('description')}</label>
-            <textarea id="description" name="description" rows="4" value={formData.description} onChange={handleChange} className={`input-field ${errors.description ? 'border-red-300' : ''}`} placeholder={t('descriptionPlaceholder')} maxLength={1000} />
-            {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
-            <p className="mt-1 text-sm text-gray-500">{t('descriptionHint', { count: formData.description.length })}</p>
-          </div>
-          {/* Category */}
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">{t('category')}</label>
-            <select id="category" name="category" value={formData.category} onChange={handleChange} className={`input-field ${errors.category ? 'border-red-300' : ''}`}>
+    <div className="mx-auto max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-slate-950">{t('title')}</h1>
+        <p className="mt-2 max-w-2xl text-slate-600">{t('subtitle')}</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="panel p-5 sm:p-6">
+        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+          <div className="space-y-5">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">{t('issueTitle')}</label>
+              <input id="title" name="title" type="text" value={formData.title} onChange={handleChange} className={`input-field ${errors.title ? 'border-red-300' : ''}`} placeholder={t('titlePlaceholder')} maxLength={200} />
+              {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
+              <p className="mt-1 text-sm text-gray-500">{t('titleHint')}</p>
+            </div>
+
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">{t('description')}</label>
+              <textarea id="description" name="description" rows="4" value={formData.description} onChange={handleChange} className={`input-field ${errors.description ? 'border-red-300' : ''}`} placeholder={t('descriptionPlaceholder')} maxLength={1000} />
+              {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+              <p className="mt-1 text-sm text-gray-500">{t('descriptionHint', { count: formData.description.length })}</p>
+            </div>
+
+            <div>
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">{t('category')}</label>
+              <select id="category" name="category" value={formData.category} onChange={handleChange} className={`input-field ${errors.category ? 'border-red-300' : ''}`}>
               <option value="">{t('selectCategory')}</option>
               {categories.map(cat => <option key={cat.key} value={cat.key}>{cat.label}</option>)}
-            </select>
-            {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
-          </div>
-          {/* Location */}
-          <div>
-            <label htmlFor="location.address" className="block text-sm font-medium text-gray-700 mb-1">{t('location')}</label>
-            <div className="relative">
+              </select>
+              {errors.category && <p className="mt-1 text-sm text-red-600">{errors.category}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="location.address" className="block text-sm font-medium text-gray-700 mb-1">{t('location')}</label>
+              <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FaMapMarkerAlt className="h-5 w-5 text-gray-400" /></div>
               <input id="location.address" name="location.address" type="text" value={formData.location.address} onChange={handleChange} className={`input-field pl-10 ${errors['location.address'] ? 'border-red-300' : ''}`} placeholder={t('locationPlaceholder')} />
             </div>
-            {errors['location.address'] && <p className="mt-1 text-sm text-red-600">{errors['location.address']}</p>}
-            <p className="mt-2 text-sm text-gray-600 flex items-center space-x-1"><FaInfoCircle className="w-4 h-4" /><span>{t('locationHint')}</span></p>
-          </div>
-          {/* Images */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('images')}</label>
-            <div className="mt-2 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-8 bg-gray-50">
-              <FaCamera className="w-12 h-12 text-gray-400 mb-4" />
-              <div className="text-center">
-                <label htmlFor="images" className="btn-primary cursor-pointer inline-block"><FaUpload className="inline-block mr-2" />{t('chooseImages')}</label>
-                <input id="images" name="images" type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
-                <p className="mt-2 text-sm text-gray-500">{t('imagesHint')}</p>
-              </div>
+              {errors['location.address'] && <p className="mt-1 text-sm text-red-600">{errors['location.address']}</p>}
+              <p className="mt-2 text-sm text-gray-600 flex items-center space-x-1"><FaInfoCircle className="w-4 h-4" /><span>{t('locationHint')}</span></p>
             </div>
-            {images.length > 0 && (
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-4">
+          </div>
+
+          <aside className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('images')}</label>
+              <div className="mt-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
+                <FaCamera className="mx-auto mb-3 h-8 w-8 text-slate-400" />
+                <label htmlFor="images" className="btn-secondary cursor-pointer">
+                  <FaUpload />
+                  {t('chooseImages')}
+                </label>
+                <input id="images" name="images" type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+                <p className="mt-3 text-xs text-slate-500">{t('imagesHint')}</p>
+              </div>
+              {images.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 gap-3">
                 {images.map((image, index) => (
                   <div key={index} className="relative">
-                    <img src={image.preview} alt={`Preview ${index + 1}`} className="w-full h-32 object-cover rounded-lg" />
+                    <img src={image.preview} alt={`Preview ${index + 1}`} className="h-24 w-full rounded-lg object-cover" />
                     <button type="button" onClick={() => removeImage(index)} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">×</button>
                   </div>
                 ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+              <h3 className="font-medium text-blue-900 mb-2">{t('guidelines')}</h3>
+              <div className="space-y-2 text-sm text-blue-800">
+                <p>{t('guideline1')}</p>
+                <p>{t('guideline3')}</p>
+                <p>{t('guideline5')}</p>
               </div>
-            )}
-          </div>
-          {/* Guidelines */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-800 mb-2">{t('guidelines')}</h3>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• {t('guideline1')}</li>
-              <li>• {t('guideline2')}</li>
-              <li>• {t('guideline3')}</li>
-              <li>• {t('guideline4')}</li>
-              <li>• {t('guideline5')}</li>
-            </ul>
-          </div>
-          {/* Buttons */}
-          <div className="flex justify-end space-x-4">
+            </div>
+          </aside>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-5">
             <button type="button" onClick={() => navigate('/dashboard')} className="btn-secondary" disabled={uploading}>{t('cancel')}</button>
             <button type="submit" className="btn-primary" disabled={uploading}>
               {uploading ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>{t('submitting')}</> : t('submit')}
             </button>
-          </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 };

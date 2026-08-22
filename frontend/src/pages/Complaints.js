@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FaFilter, FaSearch, FaPlus, FaSync } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import ComplaintList from '../components/ComplaintList';
 import api from '../utils/axios';
 import { useAuth } from '../context/AuthContext';
@@ -118,6 +118,7 @@ const translations = {
 const Complaints = () => {
   const { user } = useAuth();
   const { language } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
   const t = (key, params = {}) => {
     const keys = key.split('.');
     let val = translations[language];
@@ -136,11 +137,12 @@ const Complaints = () => {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
-    status: '',
-    category: '',
-    priority: '',
-    sort: 'newest'
+    status: searchParams.get('status') || '',
+    category: searchParams.get('category') || '',
+    priority: searchParams.get('priority') || '',
+    sort: searchParams.get('sort') || 'newest'
   });
+  const { status, category, priority, sort } = filters;
 
   const categories = Object.keys(translations[language].categories).map(key => ({
     key,
@@ -164,27 +166,24 @@ const Complaints = () => {
     { value: 'upvotes', label: t('sortUpvotes') }
   ];
 
-  useEffect(() => {
-    fetchComplaints();
-  }, [filters.sort]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [complaints, filters]);
-
-  const fetchComplaints = async () => {
+  const fetchComplaints = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/complaints?sort=${filters.sort}`);
+      const params = new URLSearchParams();
+      if (filters.sort) params.set('sort', filters.sort);
+      if (filters.status) params.set('status', filters.status);
+      if (filters.category) params.set('category', filters.category);
+      if (filters.priority) params.set('priority', filters.priority);
+      const response = await api.get(`/complaints?${params.toString()}`);
       setComplaints(response.data);
     } catch (error) {
       console.error('Error fetching complaints:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters.sort, filters.status, filters.category, filters.priority]);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...complaints];
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
@@ -194,11 +193,25 @@ const Complaints = () => {
         complaint.category.toLowerCase().includes(searchTerm)
       );
     }
-    if (filters.status) filtered = filtered.filter(complaint => complaint.status === filters.status);
-    if (filters.category) filtered = filtered.filter(complaint => complaint.category === filters.category);
-    if (filters.priority) filtered = filtered.filter(complaint => complaint.priority === filters.priority);
     setFilteredComplaints(filtered);
-  };
+  }, [complaints, filters.search]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
+  useEffect(() => {
+    const params = {};
+    if (status) params.status = status;
+    if (category) params.category = category;
+    if (priority) params.priority = priority;
+    if (sort && sort !== 'newest') params.sort = sort;
+    setSearchParams(params, { replace: true });
+  }, [status, category, priority, sort, setSearchParams]);
+
+  useEffect(() => {
+    fetchComplaints();
+  }, [fetchComplaints]);
 
   const handleFilterChange = (filterName, value) => {
     setFilters(prev => ({ ...prev, [filterName]: value }));
@@ -217,25 +230,23 @@ const Complaints = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-5">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-blue-800">{t('manage')}</h1>
-          <p className="text-gray-600">{user?.role === 'citizen' ? t('yourComplaints') : t('allComplaints')}</p>
+          <h1 className="text-3xl font-bold text-slate-950">{t('manage')}</h1>
+          <p className="mt-1 text-slate-600">{user?.role === 'citizen' ? t('yourComplaints') : t('allComplaints')}</p>
         </div>
         {user?.role === 'citizen' && (
-          <Link to="/new-complaint" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2">
+          <Link to="/new-complaint" className="btn-primary">
             <FaPlus /><span>{t('new')}</span>
           </Link>
         )}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+      <div className="panel p-5">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2"><FaFilter className="text-blue-600" /><h2 className="font-semibold text-blue-800">{t('filter')}</h2></div>
-          <button onClick={clearFilters} className="text-sm text-blue-600 hover:text-blue-700 font-medium">{t('clearFilters')}</button>
+          <div className="flex items-center space-x-2"><FaFilter className="text-blue-700" /><h2 className="font-semibold text-slate-950">{t('filter')}</h2></div>
+          <button onClick={clearFilters} className="text-sm font-semibold text-blue-700 hover:text-blue-800">{t('clearFilters')}</button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Search */}
@@ -243,13 +254,13 @@ const Complaints = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('search')}</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><FaSearch className="h-5 w-5 text-gray-400" /></div>
-              <input type="text" value={filters.search} onChange={(e) => handleFilterChange('search', e.target.value)} className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder={t('searchPlaceholder')} />
+              <input type="text" value={filters.search} onChange={(e) => handleFilterChange('search', e.target.value)} className="input-field pl-10" placeholder={t('searchPlaceholder')} />
             </div>
           </div>
           {/* Status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('status')}</label>
-            <select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <select value={filters.status} onChange={(e) => handleFilterChange('status', e.target.value)} className="input-field">
               <option value="">{t('allStatus')}</option>
               {statuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}
             </select>
@@ -257,7 +268,7 @@ const Complaints = () => {
           {/* Category */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('category')}</label>
-            <select value={filters.category} onChange={(e) => handleFilterChange('category', e.target.value)} className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <select value={filters.category} onChange={(e) => handleFilterChange('category', e.target.value)} className="input-field">
               <option value="">{t('allCategory')}</option>
               {categories.map(cat => <option key={cat.key} value={cat.key}>{cat.label}</option>)}
             </select>
@@ -265,7 +276,7 @@ const Complaints = () => {
           {/* Sort */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('sort')}</label>
-            <select value={filters.sort} onChange={(e) => handleFilterChange('sort', e.target.value)} className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <select value={filters.sort} onChange={(e) => handleFilterChange('sort', e.target.value)} className="input-field">
               {sortOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
             </select>
           </div>
@@ -274,7 +285,7 @@ const Complaints = () => {
           <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">{t('priority')}</label>
-              <select value={filters.priority} onChange={(e) => handleFilterChange('priority', e.target.value)} className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <select value={filters.priority} onChange={(e) => handleFilterChange('priority', e.target.value)} className="input-field">
                 <option value="">{t('allPriority')}</option>
                 {priorities.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
@@ -285,22 +296,22 @@ const Complaints = () => {
 
       {/* Results Summary */}
       <div className="flex items-center justify-between">
-        <p className="text-gray-600">{t('showing', { count: filteredComplaints.length })}{filters.search && ` "${filters.search}" ${t('for')}`}</p>
-        <button onClick={fetchComplaints} className="flex items-center space-x-2 text-blue-600 hover:text-blue-700"><FaSync /><span>{t('refresh')}</span></button>
+        <p className="text-sm text-slate-600">{t('showing', { count: filteredComplaints.length })}{filters.search && ` "${filters.search}" ${t('for')}`}</p>
+        <button onClick={fetchComplaints} className="btn-secondary px-3 py-2"><FaSync /><span>{t('refresh')}</span></button>
       </div>
 
       {/* Complaints List */}
       {filteredComplaints.length > 0 ? (
         <ComplaintList complaints={filteredComplaints} />
       ) : (
-        <div className="bg-white p-12 rounded-xl shadow-sm border border-gray-200 text-center">
+        <div className="panel p-12 text-center">
           <FaSearch className="w-16 h-16 mx-auto text-gray-400 mb-4" />
           <h3 className="text-xl font-semibold mb-2">{t('noResults')}</h3>
           <p className="text-gray-600 mb-6">
             {filters.search || filters.status || filters.category ? t('changeFilters') : (user?.role === 'citizen' ? t('noComplaintsCitizen') : t('noComplaintsAdmin'))}
           </p>
           {user?.role === 'citizen' && (
-            <Link to="/new-complaint" className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700">{t('firstComplaint')}</Link>
+            <Link to="/new-complaint" className="btn-primary">{t('firstComplaint')}</Link>
           )}
         </div>
       )}

@@ -3,7 +3,6 @@ import {
   FaUsers, 
   FaBuilding, 
   FaClipboardList, 
-  FaChartLine,
   FaCheckCircle,
   FaArrowRight,
   FaUserTie,

@@ -15,7 +15,7 @@ import {
   PointElement,
   LineElement
 } from 'chart.js';
-import { Bar, Pie, Line, Doughnut } from 'react-chartjs-2';
+import { Bar, Line, Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,

@@ -11,6 +11,7 @@ const {
   updateComplaintStatus,
   addComment,
   likeComplaint,
+  voteComplaint,
   getComplaintStats
 } = require('../controllers/complaintController');
 const { protect, authorize } = require('../middleware/authMiddleware');
@@ -61,5 +62,6 @@ router.get('/:id', getComplaintById);
 router.put('/:id/status', authorize('admin', 'department'), updateComplaintStatus);
 router.post('/:id/comments', body('text').notEmpty(), addComment);
 router.post('/:id/like', likeComplaint);
+router.post('/:id/vote', voteComplaint);
 
 module.exports = router;

@@ -46,9 +46,9 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token, fetchUser]);
 
-  const login = async (email, password) => {
+  const login = async (email, password, role) => {
     try {
-      const response = await axios.post('/auth/login', { email, password });
+      const response = await axios.post('/auth/login', { email, password, role });
       const { token: newToken, ...userData } = response.data;
 
       localStorage.setItem('token', newToken);
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
 
       toast.success('Login successful!');
-      return { success: true };
+      return { success: true, token: newToken, user: userData };
     } catch (error) {
       const message = error.response?.data?.message || 'Login failed';
       toast.error(message);
@@ -99,6 +99,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    token,
     loading,
     login,
     register,

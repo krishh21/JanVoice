@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FaSearch, FaEdit, FaTrash, FaUser, FaBuilding, FaUserTie, FaFilter } from 'react-icons/fa';
+import React, { useCallback, useEffect, useState } from 'react';
+import { FaSearch, FaUser, FaBuilding, FaUserTie } from 'react-icons/fa';
 import api from '../../utils/axios';
 import toast from 'react-hot-toast';
 
@@ -13,15 +13,7 @@ const UserManagement = () => {
     active: ''
   });
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [users, filters]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get('/auth/users');
@@ -32,9 +24,9 @@ const UserManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const applyFilters = () => {
+  const applyFilters = useCallback(() => {
     let filtered = [...users];
 
     if (filters.search) {
@@ -55,7 +47,15 @@ const UserManagement = () => {
     }
 
     setFilteredUsers(filtered);
-  };
+  }, [users, filters]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const handleUpdateStatus = async (userId, isActive) => {
     try {
@@ -112,12 +112,12 @@ const UserManagement = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">User Management</h1>
-        <p className="text-gray-600">Manage all user accounts in the system</p>
+        <h1 className="text-3xl font-bold text-slate-950">User Management</h1>
+        <p className="mt-1 text-slate-600">Manage all user accounts in the system</p>
       </div>
 
       {/* Filters */}
-      <div className="card">
+      <div className="panel p-5">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -171,7 +171,7 @@ const UserManagement = () => {
       </div>
 
       {/* Users List */}
-      <div className="card">
+      <div className="panel p-0 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>

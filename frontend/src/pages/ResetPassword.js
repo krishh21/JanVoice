@@ -97,7 +97,7 @@ const ResetPassword = () => {
       <div className="max-w-md w-full">
         {/* Product Banner */}
         <div className="bg-blue-800 text-white rounded-t-xl p-6 text-center mb-6">
-          <h1 className="text-xl font-bold">Civic Issue Reporter</h1>
+          <h1 className="text-xl font-bold">JanVoice</h1>
           <p className="text-blue-200 text-sm">Password Reset</p>
         </div>
 

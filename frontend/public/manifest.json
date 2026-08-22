@@ -1,6 +1,6 @@
 {
-  "short_name": "Civic Reporter",
-  "name": "Civic Issue Reporter",
+  "short_name": "JanVoice",
+  "name": "JanVoice",
   "icons": [
     {
       "src": "favicon.ico",
@@ -8,13 +8,13 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
-      "type": "image/png",
+      "src": "janVoice.webp",
+      "type": "image/webp",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.png",
-      "type": "image/png",
+      "src": "janVoice.webp",
+      "type": "image/webp",
       "sizes": "512x512"
     }
   ],

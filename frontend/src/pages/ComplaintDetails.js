@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   FaClock, 
@@ -184,11 +184,7 @@ const ComplaintDetails = () => {
   const [activeTab, setActiveTab] = useState('details');
   const [imageModal, setImageModal] = useState({ open: false, index: 0 });
 
-  useEffect(() => {
-    fetchComplaintDetails();
-  }, [id]);
-
-  const fetchComplaintDetails = async () => {
+  const fetchComplaintDetails = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get(`/complaints/${id}`);
@@ -196,12 +192,16 @@ const ComplaintDetails = () => {
       setStatus(response.data.status);
     } catch (error) {
       console.error('Error fetching complaint details:', error);
-      toast.error(t('error.loadFailed'));
+      toast.error(translations[language].error.loadFailed);
       navigate('/complaints');
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate, language]);
+
+  useEffect(() => {
+    fetchComplaintDetails();
+  }, [fetchComplaintDetails]);
 
   const handleStatusUpdate = async () => {
     try {
@@ -237,7 +237,7 @@ const ComplaintDetails = () => {
       toast.success(voteType === 'upvote' ? t('success.upvote') : t('success.downvote'));
     } catch (error) {
       console.error('Error voting:', error);
-      toast.error(t('error.voteFailed'));
+      toast.error(error.response?.data?.message || t('error.voteFailed'));
     }
   };
 
@@ -310,20 +310,7 @@ const ComplaintDetails = () => {
             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-4">
-          <div className="text-center">
-            <button onClick={() => handleVote('upvote')} className={`p-2 rounded-full ${complaint.upvotes.includes(user?._id) ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`} disabled={!user}>
-              <FaThumbsUp className="w-5 h-5" />
-            </button>
-            <p className="text-sm mt-1">{complaint.upvotes.length}</p>
-          </div>
-          <div className="text-center">
-            <button onClick={() => handleVote('downvote')} className={`p-2 rounded-full ${complaint.downvotes.includes(user?._id) ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`} disabled={!user}>
-              <FaThumbsDown className="w-5 h-5" />
-            </button>
-            <p className="text-sm mt-1">{complaint.downvotes.length}</p>
-          </div>
-        </div>
+      
       </div>
 
       {/* Tabs */}

@@ -5,6 +5,17 @@ const { validationResult } = require('express-validator');
 const sendEmail = require('../utils/sendEmail');
 const crypto = require('crypto');
 
+const sendValidationErrors = (req, res) => {
+  const errors = validationResult(req);
+  if (errors.isEmpty()) return false;
+
+  res.status(400).json({
+    message: errors.array()[0].msg,
+    errors: errors.array()
+  });
+  return true;
+};
+
 // Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET || 'your-secret-key', {
@@ -17,14 +28,16 @@ const generateToken = (id) => {
 // @access  Public
 const registerUser = async (req, res) => {
   try {
+    if (sendValidationErrors(req, res)) return;
+
     console.log('Registration attempt:', req.body.email);
 
-    const { name, email, phone, address, password, role } = req.body;
+    const { name, phone, address, password, role } = req.body;
+    const email = req.body.email.trim().toLowerCase();
 
-    // 1. Validate role (Restricted to citizen for public registration)
-    const validRoles = ['citizen', 'department', 'admin'];
-    if (role && !validRoles.includes(role)) {
-      return res.status(400).json({ message: 'Invalid role specified' });
+    // Public registration is citizen-only. Admin/department accounts must be created by admins.
+    if (role && role !== 'citizen') {
+      return res.status(403).json({ message: 'Public registration is only available for citizens' });
     }
 
     // 2. Check if user already exists
@@ -40,7 +53,7 @@ const registerUser = async (req, res) => {
       phone,
       address,
       password,
-      role: role || 'citizen'
+      role: 'citizen'
     });
 
     if (user) {
@@ -67,13 +80,21 @@ const registerUser = async (req, res) => {
 // @access  Public
 const loginUser = async (req, res) => {
   try {
-    let { email, password } = req.body;
+    if (sendValidationErrors(req, res)) return;
+
+    let { email, password, role } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
     email = email.trim().toLowerCase();
+    role = role ? role.trim().toLowerCase() : undefined;
+
+    const allowedLoginRoles = ['citizen', 'admin'];
+    if (role && !allowedLoginRoles.includes(role)) {
+      return res.status(400).json({ message: 'Please select Citizen or Admin login' });
+    }
 
     // Check for user - include password for comparison
     const user = await User.findOne({ email }).select('+password');
@@ -91,6 +112,10 @@ const loginUser = async (req, res) => {
     // Check if user is active
     if (user.isActive === false) {
       return res.status(401).json({ message: 'Account is deactivated' });
+    }
+
+    if (role && user.role !== role) {
+      return res.status(403).json({ message: `This account is not registered as ${role}` });
     }
 
     res.json({
@@ -130,11 +155,13 @@ const getUserProfile = async (req, res) => {
 // @access  Private
 const updateUserProfile = async (req, res) => {
   try {
+    if (sendValidationErrors(req, res)) return;
+
     const user = await User.findById(req.user._id);
 
     if (user) {
       user.name = req.body.name || user.name;
-      user.email = req.body.email || user.email;
+      user.email = req.body.email ? req.body.email.trim().toLowerCase() : user.email;
       user.phone = req.body.phone || user.phone;
       user.address = req.body.address || user.address;
 
@@ -182,7 +209,9 @@ const getUsers = async (req, res) => {
 // @access  Public
 const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
+    if (sendValidationErrors(req, res)) return;
+
+    const email = req.body.email.trim().toLowerCase();
 
     const user = await User.findOne({ email });
 
@@ -220,6 +249,8 @@ const forgotPassword = async (req, res) => {
 // @access  Public
 const resetPassword = async (req, res) => {
   try {
+    if (sendValidationErrors(req, res)) return;
+
     // Get hashed token
     const resetPasswordToken = crypto.createHash('sha256').update(req.params.resettoken).digest('hex');
 

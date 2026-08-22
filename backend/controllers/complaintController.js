@@ -3,6 +3,19 @@ const User = require('../models/User');
 const Department = require('../models/Department');
 const { validationResult } = require('express-validator');
 
+const categoryAliases = {
+  road: 'Road & Infrastructure',
+  water: 'Water Supply',
+  electricity: 'Electricity',
+  sanitation: 'Sanitation & Waste',
+  safety: 'Public Safety',
+  healthcare: 'Healthcare',
+  education: 'Education',
+  park: 'Parks & Recreation',
+  traffic: 'Traffic & Transportation',
+  other: 'Others'
+};
+
 // @desc    Create a new complaint
 // @route   POST /api/complaints
 // @access  Private
@@ -18,10 +31,13 @@ const createComplaint = async (req, res) => {
 
     let { title, description, category, location } = req.body;
 
-    // --- FIX: case‑insensitive category matching ---
+    const submittedCategory = String(category || '').trim();
+    const normalizedCategory = categoryAliases[submittedCategory.toLowerCase()] || submittedCategory;
+
+    // --- FIX: case-insensitive category matching ---
     const validCategories = Complaint.schema.path('category').enumValues;
     const matchedCategory = validCategories.find(
-      cat => cat.toLowerCase() === category.trim().toLowerCase()
+      cat => cat.toLowerCase() === normalizedCategory.toLowerCase()
     );
 
     if (!matchedCategory) {
@@ -84,7 +100,7 @@ const createComplaint = async (req, res) => {
 // @access  Private
 const getComplaints = async (req, res) => {
   try {
-    const { status, category, department, sort } = req.query;
+    const { status, category, department, priority, sort } = req.query;
     
     let query = {};
     
@@ -107,6 +123,7 @@ const getComplaints = async (req, res) => {
     if (status) query.status = status;
     if (category) query.category = category;
     if (department) query.department = department;
+    if (priority) query.priority = priority;
 
     let sortOptions = { createdAt: -1 }; // Default sort by newest
     
@@ -149,10 +166,15 @@ const getComplaintById = async (req, res) => {
       return res.status(404).json({ message: 'Complaint not found' });
     }
 
-    // Check authorization
-    if (req.user.role === 'citizen' && 
-        complaint.citizen._id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
+    // Citizens can view their own complaints and public community complaints.
+    // Rejected complaints are kept private to the owner and staff.
+    if (req.user.role === 'citizen') {
+      const isOwner = complaint.citizen._id.toString() === req.user._id.toString();
+      const isCommunityVisible = complaint.status !== 'Rejected';
+
+      if (!isOwner && !isCommunityVisible) {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
     }
 
     if (req.user.role === 'department' && 
@@ -352,6 +374,48 @@ const likeComplaint = async (req, res) => {
   }
 };
 
+// @desc    Upvote/downvote complaint
+// @route   POST /api/complaints/:id/vote
+// @access  Private
+const voteComplaint = async (req, res) => {
+  try {
+    const { voteType } = req.body;
+
+    if (!['upvote', 'downvote'].includes(voteType)) {
+      return res.status(400).json({ message: 'Invalid vote type' });
+    }
+
+    const complaint = await Complaint.findById(req.params.id);
+
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint not found' });
+    }
+
+    const userId = req.user._id.toString();
+    const upvotes = Array.isArray(complaint.upvotes) ? complaint.upvotes : [];
+    const downvotes = Array.isArray(complaint.downvotes) ? complaint.downvotes : [];
+
+    complaint.upvotes = upvotes.filter(id => id && id.toString() !== userId);
+    complaint.downvotes = downvotes.filter(id => id && id.toString() !== userId);
+
+    if (voteType === 'upvote') {
+      complaint.upvotes.push(req.user._id);
+    } else {
+      complaint.downvotes.push(req.user._id);
+    }
+
+    await complaint.save();
+
+    res.json({
+      upvotes: complaint.upvotes,
+      downvotes: complaint.downvotes
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // @desc    Get complaint statistics
 // @route   GET /api/complaints/stats
 // @access  Private/Admin/Department
@@ -432,5 +496,6 @@ module.exports = {
   updateComplaintStatus,
   addComment,
   likeComplaint,
+  voteComplaint,
   getComplaintStats
 };
