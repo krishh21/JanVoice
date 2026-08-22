@@ -15,11 +15,18 @@ const adminRoutes = require('./routes/adminRoutes');
 const app = express();
 
 // Middleware
+const configuredFrontendUrl = process.env.FRONTEND_URL;
+const normalizedFrontendUrl = configuredFrontendUrl && !configuredFrontendUrl.startsWith('http')
+  ? `https://${configuredFrontendUrl}`
+  : configuredFrontendUrl;
+
 const allowedOrigins = [
   'https://nagar-nigam-portal.vercel.app',
+  'https://jan-voice-delta.vercel.app',
   'http://localhost:3000',
   'http://localhost:5173',
-  process.env.FRONTEND_URL,
+  configuredFrontendUrl,
+  normalizedFrontendUrl,
 ].filter(Boolean);
 
 const corsOptions = {
