@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaHome, FaLock, FaPhone, FaUser } from 'react-icons/fa';
+import { FaEnvelope, FaHome, FaLock, FaPhone, FaUser, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -93,6 +93,8 @@ const Register = () => {
   const { register } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const t = (key) => {
     const keys = key.split('.');
@@ -138,7 +140,7 @@ const Register = () => {
     if (result.success) navigate('/dashboard');
   };
 
-  const fieldClass = (name) => `w-full pl-10 pr-3 py-3 border rounded-lg outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors[name] ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'}`;
+  const fieldClass = (name) => `w-full pl-10 pr-10 py-3 border rounded-lg outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors[name] ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'}`;
 
   const fields = [
     { name: 'name', type: 'text', label: t('name'), placeholder: t('namePlaceholder'), icon: FaUser },
@@ -167,13 +169,22 @@ const Register = () => {
                   <Icon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <input
                     name={name}
-                    type={type}
+                    type={name === 'password' ? (showPassword ? 'text' : 'password') : name === 'confirmPassword' ? (showConfirmPassword ? 'text' : 'password') : type}
                     value={formData[name]}
                     onChange={handleChange}
                     className={fieldClass(name)}
                     placeholder={placeholder}
                     maxLength={maxLength}
                   />
+                  {(name === 'password' || name === 'confirmPassword') && (
+                    <button
+                      type="button"
+                      onClick={() => name === 'password' ? setShowPassword(p => !p) : setShowConfirmPassword(p => !p)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {name === 'password' ? (showPassword ? <FaEyeSlash /> : <FaEye />) : (showConfirmPassword ? <FaEyeSlash /> : <FaEye />)}
+                    </button>
+                  )}
                 </div>
                 {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
               </div>

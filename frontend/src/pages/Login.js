@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaEnvelope, FaLock, FaUser, FaUserTie, FaShieldAlt } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaUser, FaUserTie, FaShieldAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -67,6 +67,7 @@ const Login = () => {
   const { language } = useLanguage();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const t = (key) => {
     const keys = key.split('.');
@@ -169,7 +170,10 @@ const Login = () => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">{t('password')}</label>
               <div className="relative">
                 <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input id="password" name="password" type="password" autoComplete="current-password" value={formData.password} onChange={handleChange} className={`w-full pl-10 pr-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'}`} placeholder={t('passwordPlaceholder')} />
+                <input id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={formData.password} onChange={handleChange} className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none ${errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300'}`} placeholder={t('passwordPlaceholder')} />
+                <button type="button" onClick={() => setShowPassword(prev => !prev)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
               </div>
               {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
             </div>
