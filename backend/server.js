@@ -21,8 +21,7 @@ const normalizedFrontendUrl = configuredFrontendUrl && !configuredFrontendUrl.st
   : configuredFrontendUrl;
 
 const allowedOrigins = [
-  'https://nagar-nigam-portal.vercel.app',
-  'https://jan-voice-delta.vercel.app',
+  'https://frontend-krishh21s-projects.vercel.app',
   'http://localhost:3000',
   'http://localhost:5173',
   configuredFrontendUrl,

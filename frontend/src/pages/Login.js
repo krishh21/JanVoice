@@ -66,6 +66,7 @@ const Login = () => {
   const { login } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
+  const [submitting, setSubmitting] = useState(false);
 
   const t = (key) => {
     const keys = key.split('.');
@@ -99,9 +100,14 @@ const Login = () => {
       return;
     }
 
-    const result = await login(formData.email, formData.password, activeRole);
-    if (result.success) {
-      navigate(activeRole === 'admin' ? '/admin' : '/dashboard');
+    setSubmitting(true);
+    try {
+      const result = await login(formData.email, formData.password, activeRole);
+      if (result.success) {
+        navigate(activeRole === 'admin' ? '/admin' : '/dashboard');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -172,7 +178,19 @@ const Login = () => {
               <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">{t('forgot')}</Link>
             </div>
 
-            <button type="submit" className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg transition-colors">{t('submit')}</button>
+            <button type="submit" disabled={submitting} className={`w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center ${submitting ? 'opacity-70 cursor-not-allowed' : ''}`}>
+              {submitting ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 mr-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                  <span>Logging in...</span>
+                </>
+              ) : (
+                t('submit')
+              )}
+            </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-600">

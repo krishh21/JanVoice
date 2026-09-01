@@ -6,11 +6,43 @@ const AuthContext = createContext({});
 
 export const useAuth = () => useContext(AuthContext);
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || (
-  process.env.NODE_ENV === 'production'
-    ? 'https://janvoice-e0vv.onrender.com/api'
-    : 'http://localhost:5000/api'
-);
+const computeApiBase = () => {
+  const raw = process.env.REACT_APP_API_URL;
+  if (!raw) {
+    return process.env.NODE_ENV === 'production'
+      ? 'https://janvoice-e0vv.onrender.com/api'
+      : 'http://localhost:5000/api';
+  }
+
+  try {
+    // Ensure we have an absolute URL for parsing
+    const maybe = raw.startsWith('http') ? raw : `https://${raw}`;
+    const u = new URL(maybe);
+    // If path contains /api keep up to /api
+    const apiIdx = u.pathname.indexOf('/api');
+    if (apiIdx !== -1) {
+      u.pathname = u.pathname.slice(0, apiIdx + 4);
+    } else {
+      // If path contains /auth, trim at /auth and ensure /api exists
+      const authIdx = u.pathname.indexOf('/auth');
+      if (authIdx !== -1) {
+        u.pathname = u.pathname.slice(0, authIdx);
+        if (!u.pathname.endsWith('/api')) u.pathname = `${u.pathname.replace(/\/$/, '')}/api`;
+      } else {
+        // otherwise ensure path ends with /api
+        if (!u.pathname.endsWith('/api')) u.pathname = `${u.pathname.replace(/\/$/, '')}/api`;
+      }
+    }
+
+    // return without trailing slash
+    return `${u.origin}${u.pathname}`.replace(/\/$/, '');
+  } catch (e) {
+    // fallback to raw value
+    return raw.replace(/\/$/, '');
+  }
+};
+
+const API_BASE_URL = computeApiBase();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
