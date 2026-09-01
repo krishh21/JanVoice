@@ -52,6 +52,20 @@ export const AuthProvider = ({ children }) => {
   // Axios configuration
   axios.defaults.baseURL = API_BASE_URL;
 
+  // defensive: if env was set to a full endpoint (eg. .../api/auth/login)
+  // ensure baseURL does not unintentionally include extra path segments like `/auth/login`
+  try {
+    const parsed = new URL(axios.defaults.baseURL);
+    const authIdx = parsed.pathname.indexOf('/auth/login');
+    if (authIdx !== -1) {
+      parsed.pathname = parsed.pathname.slice(0, parsed.pathname.indexOf('/api') + 4) || '/api';
+      axios.defaults.baseURL = `${parsed.origin}${parsed.pathname}`.replace(/\/$/, '');
+      console.warn('Normalized axios.baseURL to', axios.defaults.baseURL);
+    }
+  } catch (e) {
+    // ignore parsing errors
+  }
+
   if (token) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }
