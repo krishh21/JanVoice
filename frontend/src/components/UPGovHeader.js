@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaChartBar, FaClipboardList, FaHome, FaPlus, FaSignOutAlt, FaUser } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -34,6 +34,7 @@ const UPGovHeader = () => {
   const { language, toggleLanguage } = useLanguage();
   const t = (key) => translations[language][key] || key;
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -47,6 +48,14 @@ const UPGovHeader = () => {
     { to: '/new-complaint', label: t('newComplaint'), icon: FaPlus, show: user.role === 'citizen' },
     { to: '/admin', label: t('admin'), icon: FaChartBar, show: user.role === 'admin' }
   ].filter(item => item.show) : [];
+
+  const isActiveRoute = (to) => {
+    if (to === '/admin') {
+      return location.pathname === to;
+    }
+
+    return location.pathname === to || location.pathname.startsWith(`${to}/`);
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -66,12 +75,25 @@ const UPGovHeader = () => {
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <nav className="flex flex-wrap gap-2">
-              {navItems.map(({ to, label, icon: Icon }) => (
-                <Link key={to} to={to} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950">
+              {navItems.map(({ to, label, icon: Icon }) => {
+                const isActive = isActiveRoute(to);
+
+                return (
+                <Link
+                  key={to}
+                  to={to}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    isActive
+                      ? 'bg-blue-700 text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                  aria-current={isActive ? 'page' : undefined}
+                >
                   <Icon className="text-xs" />
                   <span>{label}</span>
                 </Link>
-              ))}
+                );
+              })}
             </nav>
 
             <div className="flex items-center gap-2">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FaUser, FaBell, FaBars, FaTimes, FaHome, FaClipboardList, FaPlusCircle, FaChartBar, FaBuilding, FaSignOutAlt, FaUsers } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -38,6 +38,7 @@ const Navbar = () => {
   const { language, toggleLanguage } = useLanguage();
   const t = (key) => translations[language][key] || key;
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -57,6 +58,14 @@ const Navbar = () => {
     !item.roles || item.roles.includes(user?.role)
   );
 
+  const isActiveRoute = (to) => {
+    if (to === '/admin') {
+      return location.pathname === to;
+    }
+
+    return location.pathname === to || location.pathname.startsWith(`${to}/`);
+  };
+
   return (
     <nav className="bg-white shadow-lg">
       <div className="container mx-auto px-4">
@@ -67,12 +76,25 @@ const Navbar = () => {
           </Link>
 
           <div className="hidden md:flex items-center space-x-8">
-            {user && filteredNavItems.map((item) => (
-              <Link key={item.to} to={item.to} className="flex items-center space-x-2 text-gray-600 hover:text-primary-600">
+            {user && filteredNavItems.map((item) => {
+              const isActive = isActiveRoute(item.to);
+
+              return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`flex items-center space-x-2 rounded-lg px-3 py-2 font-medium transition ${
+                  isActive
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
+                }`}
+                aria-current={isActive ? 'page' : undefined}
+              >
                 {item.icon}
                 <span>{t(item.labelKey)}</span>
               </Link>
-            ))}
+              );
+            })}
           </div>
 
           <div className="flex items-center space-x-4">
@@ -120,12 +142,26 @@ const Navbar = () => {
         {isMenuOpen && user && (
           <div className="md:hidden py-4 border-t">
             <div className="flex flex-col space-y-2">
-              {filteredNavItems.map((item) => (
-                <Link key={item.to} to={item.to} className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-lg" onClick={() => setIsMenuOpen(false)}>
+              {filteredNavItems.map((item) => {
+                const isActive = isActiveRoute(item.to);
+
+                return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                  aria-current={isActive ? 'page' : undefined}
+                  onClick={() => setIsMenuOpen(false)}
+                >
                   {item.icon}
                   <span>{t(item.labelKey)}</span>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
