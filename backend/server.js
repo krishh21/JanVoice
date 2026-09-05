@@ -22,6 +22,7 @@ const normalizedFrontendUrl = configuredFrontendUrl && !configuredFrontendUrl.st
 
 const allowedOrigins = [
   'https://frontend-krishh21s-projects.vercel.app',
+  'https://gregarious-croissant-3726f5.netlify.app',
   'http://localhost:3000',
   'http://localhost:5173',
   configuredFrontendUrl,
