@@ -21,6 +21,7 @@ const translations = {
     confirmPassword: 'Confirm password',
     confirmPasswordPlaceholder: 'Confirm password',
     submit: 'Register',
+    registering: 'Registering...',
     alreadyRegistered: 'Already have an account?',
     login: 'Login',
     error: {
@@ -52,6 +53,7 @@ const translations = {
     confirmPassword: 'पासवर्ड की पुष्टि करें',
     confirmPasswordPlaceholder: 'पासवर्ड दोबारा लिखें',
     submit: 'पंजीकरण करें',
+    registering: 'पंजीकरण हो रहा है...',
     alreadyRegistered: 'पहले से खाता है?',
     login: 'लॉगिन करें',
     error: {
@@ -90,6 +92,7 @@ const Register = () => {
     role: 'citizen'
   });
   const [errors, setErrors] = useState({});
+  const [isRegistering, setIsRegistering] = useState(false);
   const { register } = useAuth();
   const { language } = useLanguage();
   const navigate = useNavigate();
@@ -129,6 +132,8 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isRegistering) return;
+
     const validationErrors = validateForm();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -136,11 +141,16 @@ const Register = () => {
     }
 
     const { confirmPassword, ...registrationData } = formData;
-    const result = await register(registrationData);
-    if (result.success) navigate('/dashboard');
+    setIsRegistering(true);
+    try {
+      const result = await register(registrationData);
+      if (result.success) navigate('/dashboard');
+    } finally {
+      setIsRegistering(false);
+    }
   };
 
-  const fieldClass = (name) => `w-full pl-10 pr-10 py-3 border rounded-lg outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors[name] ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'}`;
+  const fieldClass = (name) => `w-full pl-10 pr-10 py-3 border rounded-lg outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors[name] ? 'border-red-400 bg-red-50' : 'border-gray-300'}`;
 
   const fields = [
     { name: 'name', type: 'text', label: t('name'), placeholder: t('namePlaceholder'), icon: FaUser },
@@ -175,12 +185,14 @@ const Register = () => {
                     className={fieldClass(name)}
                     placeholder={placeholder}
                     maxLength={maxLength}
+                    disabled={isRegistering}
                   />
                   {(name === 'password' || name === 'confirmPassword') && (
                     <button
                       type="button"
                       onClick={() => name === 'password' ? setShowPassword(p => !p) : setShowConfirmPassword(p => !p)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      disabled={isRegistering}
                     >
                       {name === 'password' ? (showPassword ? <FaEyeSlash /> : <FaEye />) : (showConfirmPassword ? <FaEyeSlash /> : <FaEye />)}
                     </button>
@@ -191,8 +203,13 @@ const Register = () => {
             ))}
           </div>
 
-          <button type="submit" className="mt-7 w-full bg-blue-700 hover:bg-blue-800 text-white font-semibold py-3 px-4 rounded-lg transition">
-            {t('submit')}
+          <button
+            type="submit"
+            disabled={isRegistering}
+            aria-busy={isRegistering}
+            className="mt-7 w-full bg-blue-700 hover:bg-blue-800 disabled:bg-blue-400 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition"
+          >
+            {isRegistering ? t('registering') : t('submit')}
           </button>
 
           <p className="mt-6 text-center text-sm text-gray-600">
